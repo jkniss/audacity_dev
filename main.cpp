@@ -3,6 +3,8 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <algorithm>
+
 
 using namespace std;
 
@@ -10,7 +12,7 @@ using namespace std;
  Creating an enum allows us to build a custom class with custom outputs.
  The enum State will be used to describe the state of the baord instead of integers.
  All the functions will be refactored to accept a State object instead of an int*/
-enum class State {kEmpty, kObstacle};
+enum class State {kEmpty, kObstacle, kClosed, kPath};
 
 /* Function that takes an enum and returns the state as a string value
  * Enum is declared above. State {kEmpty, kObstacle}*/
@@ -77,9 +79,105 @@ void PrintBoard(const vector<vector<State>>& board) {
 }
 
 
+/* Compare function accepts two vector<int> nodes as arguments. Function will return true
+ * if the f-value of the first argument is greater than f-value of second argument, otherwise return false*/
+
+bool Compare(vector<int> node1, vector<int> node2) {
+    int f1 = node1[2] + node2[3];
+    int f2 = node1[2] + node2[3];
+
+    return f1 > f2;
+}
+
+/*CellSort function uses the Compare function to determine the sorting order*/
+void CellSort(vector<vector<int>> *v) {
+    sort(v->begin(), v->end(), Compare);
+}
+/* AddToOpen function accepts four ints {x, y, g, h}, reference to one 2D vector of ints for open nodes,
+ reference to one 2D vector State for the grid. Function performs two things: creates a vector<int> node with {x, y, g, h}
+ and push the node to the back of the open vector, sets the grid value for the x and y coordinates to the enum value kClosed.*/
+
+void AddToOpen( int x,  int y,  int g,  int h, vector<vector<int>> &open_nodes, vector<vector<State>> &grid) {
+
+    // Create a vector<int> node with {x, y, g, h}
+    vector<int> node = {x, y, g, h};
+
+    // Push back the new node to the 2D vector of open nodes
+    open_nodes.push_back(node);
+
+    // Set the grid value for the x and y coordinates to the enum value kClosed
+    grid[x][y] = State::kClosed;
+}
+/* Heuristic function, takes for ints as arguments. The ints represent two pairs
+  of 2D coordinates (x1, y1, x2, y2). Function returns an int which is the
+  Manhattan Distance from one coordinate to the other: |x2-x1| + |y2-y1|
+  */
+
+int Heuristic( int x1,  int y1,  int x2,  int y2) {
+    int manhattan_distance = abs(x2 - x1) + abs(y2 - y1);
+    return manhattan_distance;
+}
+
+/* Function that takes a 2D State vector and two int arrays[2] as arguments.
+ returns a 2D board vector*/
+
+vector<vector<State>> Search(vector<vector<State>> grid, int initial_point[2], int goal_point[2]) {
+
+    // Create the vector of open nodes
+    vector<vector<int>> open {};
+
+    // Initialize the starting node
+    int x = initial_point[0];
+    int y = initial_point[1];
+
+    // Set the initial cost (g) to zero
+    int g = 0;
+
+    // Get the Heuristic value
+    int h = Heuristic(initial_point[0], initial_point[1], goal_point[0], goal_point[1]);
+
+    // Call AddToOpen to create the first node
+    AddToOpen(x, y, g, h, open, grid);
+
+    // While open vector is not empty
+    while (not open.empty()) {
+
+        /* Call CellSort to sort open list in desending order to have
+        node with lowest heuristic value at the end*/
+        CellSort(&open);
+
+        // Get the last node from the open vector
+        vector<int> current_node = open.back();
+
+        // Remove the last node from the open vector
+        open.pop_back();
+
+        // Get the x & y values from current_node
+        int cur_x = current_node[0];
+        int cur_y = current_node[1];
+
+        // Set grid[x][y] to kPath
+        grid[cur_x][cur_y] = State::kPath;
+
+        if (cur_x == goal_point[0] &&  cur_y == goal_point[1]) {
+            return grid;
+        }
+        else {
+            cout << "Run expandNeighbors function here";
+        }
+    }
+
+    cout << "No path found!" << "\n";
+    return vector<vector<State>> {};
+}
+
 int main() {
+
+    int init[2]{0,0};
+    int goal[2]{4, 5};
 
     // Store the output of ReadBoardFile in the "board" variable
     vector<vector<State>> board = ReadBoardFile("/Users/jessekniss/CLionProjects/section1/1.board");
-    PrintBoard(board);
+    auto solution = Search(board, init, goal);
+    PrintBoard(solution);
 }
